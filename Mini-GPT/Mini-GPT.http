@@ -1,0 +1,6 @@
+@Mini_GPT_HostAddress = http://localhost:5134
+
+GET {{Mini_GPT_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
