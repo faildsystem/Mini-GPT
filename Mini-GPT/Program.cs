@@ -27,6 +27,9 @@ namespace Mini_GPT
             builder.Services.AddSingleton<MongoDbContext>();
             // Register ChatService
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<ILlmService, LlmService>();
+
+            builder.Services.AddHttpClient<LlmService>();
 
 
             var app = builder.Build();

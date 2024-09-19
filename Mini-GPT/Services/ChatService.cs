@@ -13,10 +13,12 @@ namespace Mini_GPT.Services
     public class ChatService : IChatService
     {
         private readonly IMongoCollection<Chat> _chatCollection;
+        private readonly ILlmService _llmService;
 
-        public ChatService(MongoDbContext mongoDbContext)
+        public ChatService(MongoDbContext mongoDbContext, ILlmService llmService)
         {
             _chatCollection = mongoDbContext.ChatCollection;
+            _llmService = llmService;
         }
 
         public async Task<Chat> CreateChatAsync(string prompt)
@@ -137,11 +139,8 @@ namespace Mini_GPT.Services
 
         private async Task<string> GenerateGptResponseAsync(string prompt)
         {
-            // Simulate calling GPT model (can be replaced with actual GPT API call)
-            await Task.Delay(100); // Simulate delay for processing
-
-            // Here, you'd replace this line with an actual call to a GPT service
-            return $"Simulated response for prompt: {prompt}";
+            var response = await _llmService.GetLlmResponseAsync(prompt);
+            return response;
         }
 
     }
