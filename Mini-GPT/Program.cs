@@ -1,6 +1,11 @@
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Mini_GPT.Data;
+using Mini_GPT.Interfaces;
+using Mini_GPT.Models;
+using Mini_GPT.Services;
+using MongoDB.Driver;
 
 namespace Mini_GPT
 {
@@ -16,6 +21,13 @@ namespace Mini_GPT
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            // Configure MongoDB settings
+            builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
+            // Register MongoDbContext with the configuration
+            builder.Services.AddSingleton<MongoDbContext>();
+            // Register ChatService
+            builder.Services.AddScoped<IChatService, ChatService>();
+
 
             var app = builder.Build();
 
