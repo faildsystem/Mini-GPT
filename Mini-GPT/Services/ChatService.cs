@@ -1,4 +1,7 @@
 ﻿
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 using Mini_GPT.Data;
 using Mini_GPT.DTOs.Chat;
 using Mini_GPT.DTOs.Messages;
@@ -7,6 +10,8 @@ using Mini_GPT.Mappers;
 using Mini_GPT.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Security.Claims;
+
 
 namespace Mini_GPT.Services
 {
@@ -14,40 +19,51 @@ namespace Mini_GPT.Services
     {
         private readonly IMongoCollection<Chat> _chatCollection;
         private readonly ILlmService _llmService;
+        private readonly UserManager<AppUser> _userManager;
 
-        public ChatService(MongoDbContext mongoDbContext, ILlmService llmService)
+        public ChatService(MongoDbContext mongoDbContext, ILlmService llmService, UserManager<AppUser> userManager)
         {
             _chatCollection = mongoDbContext.ChatCollection;
             _llmService = llmService;
+            _userManager = userManager;
         }
 
-        public async Task<Chat> CreateChatAsync(string prompt)
+        public async Task<Chat> CreateChatAsync(string prompt, string userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new Exception("User ID not found.");
+            }
+
+            // Create the first message with the prompt and GPT response
 
             var message = new Message
             {
                 Prompt = prompt,
                 Response = await GenerateGptResponseAsync(prompt),
                 CreatedAt = DateTime.UtcNow
-
             };
+
+            // Initialize a new chat with the user's ID and the first message
             var chat = new Chat
             {
-                Messages = [message]
+                UserId = userId, // Store the authenticated user's ID here
+                Messages = new List<Message> { message }
+
             };
 
             try
             {
-                // Insert the chat into the MongoDB collection with the response
+                // Insert the chat into the MongoDB collection
+
                 await _chatCollection.InsertOneAsync(chat);
             }
             catch (Exception ex)
             {
-                // Handle exception (log, rethrow, or return a meaningful response)
                 throw new Exception("An error occurred while creating the chat.", ex);
             }
 
-            // Return the chat object (with populated ChatId after insertion)
+
             return chat;
         }
 
@@ -141,6 +157,12 @@ namespace Mini_GPT.Services
         {
             var response = await _llmService.GetLlmResponseAsync(prompt);
             return response;
+        }
+
+        public async Task<List<Chat>> GetAllUserChats(string userId)
+        {
+            var filter = Builders<Chat>.Filter.Eq(c => c.UserId, userId);
+            return await _chatCollection.Find(filter).ToListAsync();
         }
 
     }

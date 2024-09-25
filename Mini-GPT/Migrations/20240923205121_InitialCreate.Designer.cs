@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Mini_GPT.Data;
 
@@ -11,9 +12,11 @@ using Mini_GPT.Data;
 namespace Mini_GPT.Migrations
 {
     [DbContext(typeof(AppSqlDBContext))]
-    partial class AppSqlDBContextModelSnapshot : ModelSnapshot
+    [Migration("20240923205121_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

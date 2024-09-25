@@ -1,0 +1,7 @@
+- transaction for register 
+- send email job
+- reset password 
+- resend confirmation email
+- refine email style
+- fix sql performance 
+- unit test 

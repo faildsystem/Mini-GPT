@@ -1,5 +1,6 @@
-﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+
 using System.ComponentModel.DataAnnotations;
 
 namespace Mini_GPT.Models
