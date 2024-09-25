@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 using Mini_GPT.Data;
 using Mini_GPT.DTOs.Chat;
 using Mini_GPT.DTOs.Messages;
@@ -10,6 +11,7 @@ using Mini_GPT.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Security.Claims;
+
 
 namespace Mini_GPT.Services
 {
@@ -34,6 +36,7 @@ namespace Mini_GPT.Services
             }
 
             // Create the first message with the prompt and GPT response
+
             var message = new Message
             {
                 Prompt = prompt,
@@ -46,17 +49,20 @@ namespace Mini_GPT.Services
             {
                 UserId = userId, // Store the authenticated user's ID here
                 Messages = new List<Message> { message }
+
             };
 
             try
             {
                 // Insert the chat into the MongoDB collection
+
                 await _chatCollection.InsertOneAsync(chat);
             }
             catch (Exception ex)
             {
                 throw new Exception("An error occurred while creating the chat.", ex);
             }
+
 
             return chat;
         }
@@ -158,6 +164,7 @@ namespace Mini_GPT.Services
             var filter = Builders<Chat>.Filter.Eq(c => c.UserId, userId);
             return await _chatCollection.Find(filter).ToListAsync();
         }
+
     }
 }
 

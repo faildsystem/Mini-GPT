@@ -7,3 +7,4 @@
         public string ChatCollection { get; set; }
     }
 }
+

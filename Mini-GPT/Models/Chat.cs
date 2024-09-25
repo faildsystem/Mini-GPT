@@ -12,6 +12,7 @@ namespace Mini_GPT.Models
         public string? ChatId { get; set; }
         [Required]
         public string? UserId { get; set; }
+
         [Required]
         public List<Message>? Messages { get; set; }
     }

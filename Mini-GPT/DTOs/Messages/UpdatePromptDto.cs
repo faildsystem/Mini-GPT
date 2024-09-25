@@ -8,3 +8,4 @@ namespace Mini_GPT.DTOs.Messages
         public string Prompt { get; set; }
     }
 }
+

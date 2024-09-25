@@ -8,6 +8,7 @@ using Mini_GPT.Mappers;
 using Mini_GPT.Models;
 using System.Security.Claims;
 
+
 namespace Mini_GPT.Controllers
 {
     [ApiController]
@@ -20,6 +21,7 @@ namespace Mini_GPT.Controllers
         public ChatController(IChatService chatService)
         {
             _chatService = chatService;
+
         }
 
         [HttpPost]
@@ -37,6 +39,7 @@ namespace Mini_GPT.Controllers
             var newChat = await _chatService.CreateChatAsync(prompt, userId);
 
             return Ok(newChat);
+
         }
 
 
@@ -57,6 +60,7 @@ namespace Mini_GPT.Controllers
         public async Task<IActionResult> SendPrompt([FromRoute] string chatId, [FromBody] string prompt)
         {
             var sentMessage = await _chatService.SendPromptAsync(chatId, prompt);
+
             var responseMessage = sentMessage.ToMessageDto();
             return Ok(responseMessage);
         }
@@ -70,6 +74,7 @@ namespace Mini_GPT.Controllers
                 return NotFound();
             }
             return Ok();
+
         }
 
         [HttpPut("{chatId}")]
@@ -78,6 +83,7 @@ namespace Mini_GPT.Controllers
             var message = await _chatService.EditPromptAsync(chatId, updatePromptDto.Message, updatePromptDto.Prompt);
             var responseMessage = message.ToMessageDto();
             return Ok(responseMessage);
+
         }
 
         [HttpGet("[action]")]
@@ -88,5 +94,6 @@ namespace Mini_GPT.Controllers
             return Ok(chats);
         }
     
+
     }
 }
