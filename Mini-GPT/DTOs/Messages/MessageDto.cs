@@ -10,3 +10,4 @@ namespace Mini_GPT.DTOs.Messages
         public string? Response { get; set; }
     }
 }
+

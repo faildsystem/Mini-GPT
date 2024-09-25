@@ -19,3 +19,4 @@ namespace Mini_GPT.Data
         public IMongoCollection<Chat> ChatCollection => _chatCollection;
     }
 }
+

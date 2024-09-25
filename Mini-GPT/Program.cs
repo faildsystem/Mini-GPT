@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 using Mini_GPT.Data;
 using Mini_GPT.Interfaces;
 using Mini_GPT.Models;
 using Mini_GPT.Services;
 using System.Text;
+
 
 namespace Mini_GPT
 {
@@ -104,6 +106,7 @@ namespace Mini_GPT
         }
     });
             });
+
             // Configure MongoDB settings
             builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
             // Register MongoDbContext with the configuration
@@ -118,6 +121,7 @@ namespace Mini_GPT
 
             builder.Services.AddHttpClient<LlmService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
+
 
 
             var app = builder.Build();
