@@ -120,7 +120,7 @@ namespace Mini_GPT.Controllers
         }
 
 
-        [HttpGet("confirmemail")]
+        [HttpGet("confirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
             var user = await _userManager.FindByIdAsync(userId);

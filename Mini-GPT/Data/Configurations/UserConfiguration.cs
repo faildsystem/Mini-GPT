@@ -11,9 +11,6 @@ namespace Mini_GPT.Data.Configurations
             builder
                 .Property(u => u.ProfileImage)
                 .IsRequired(false);
-
-
-
         }
     }
 }
