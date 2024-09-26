@@ -1,7 +1,7 @@
-- transaction for register 
-- send email job
-- reset password 
-- resend confirmation email
-- refine email style
+- transaction for register                 done!
+- send email job	
+- reset password                           done!
+- resend confirmation email                done!
+- refine email style                       done!
 - fix sql performance 
 - unit test 

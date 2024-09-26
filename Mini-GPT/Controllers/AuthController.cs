@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Rewrite;
-using Microsoft.EntityFrameworkCore;
 using Mini_GPT.DTOs.Account;
 using Mini_GPT.Interfaces;
 using Mini_GPT.Models;
-using System.Text.Encodings.Web;
+using System.Net;
+using System.Transactions;
 
 namespace Mini_GPT.Controllers
 {
@@ -29,46 +29,99 @@ namespace Mini_GPT.Controllers
             _emailService = emailService;
         }
 
+        [HttpGet("confirmEmail")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(result);
+        }
+
+
+        [HttpGet("sendVerficationEmail")]
+        public async Task<IActionResult> SendVerificationEmail(string email)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(email);
+
+                if (user == null)
+                {
+                    return BadRequest("Invalid Request!");
+                }
+
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                var confirmationLink = Url.Action("ConfirmEmail", "Auth", new { userId = user.Id, token = token }, Request.Scheme);
+
+                var emailBody = await GetEmailTemplate("emailVerification");
+
+                emailBody = emailBody.Replace("{{confirmationLink}}", confirmationLink!);
+
+                await _emailService.SendEmailAsync(user.Email!, "Confirm your email", emailBody);
+
+
+                return Ok("Verification email has been sent to your email");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(500, ex.Message);
+            }
+        }
 
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            try
+            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
-                Console.WriteLine("lkjdflasjljla");
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var user = new AppUser
+                try
                 {
-                    UserName = registerDto.Username,
-                    Email = registerDto.Email,
+                    if (!ModelState.IsValid)
+                        return BadRequest(ModelState);
 
-                };
+                    var user = new AppUser
+                    {
+                        UserName = registerDto.Username,
+                        Email = registerDto.Email,
+                    };
 
-                var createdUser = await _userManager.CreateAsync(user, registerDto.Password);
-                if (!createdUser.Succeeded)
-                    return BadRequest(createdUser.Errors);
+                    // Create the user
+                    var createdUser = await _userManager.CreateAsync(user, registerDto.Password);
 
-                var roleResult = await _userManager.AddToRoleAsync(user, "USER");
+                    if (!createdUser.Succeeded)
+                        return BadRequest(createdUser.Errors);
 
-                if (!roleResult.Succeeded)
-                    return BadRequest(roleResult.Errors);
+                    // Add the user to the role
+                    var roleResult = await _userManager.AddToRoleAsync(user, "USER");
 
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action("ConfirmEmail", "Auth", new { userId = user.Id, token = token }, Request.Scheme);
+                    if (!roleResult.Succeeded)
+                        return BadRequest(roleResult.Errors);
 
-                var emailBody = $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(confirmationLink)}'>clicking here</a>.";
-                await _emailService.SendEmailAsync(registerDto.Email, "Confirm your email", emailBody);
+                    // Queue the email sending as a background job
+                    BackgroundJob.Enqueue(() => SendVerificationEmail(registerDto.Email!));
 
-                // Return 201 Created with the new user data
-                return CreatedAtAction(nameof(Register), new { id = user.Id });
+                    // Commit the transaction
+                    scope.Complete();
 
-            }
-            catch (Exception e)
-            {
-                return StatusCode(500, e.Message);
+                    // Return 201 Created with the new user data
+                    return CreatedAtAction(nameof(Register), new { id = user.Id });
+                }
+                catch (Exception e)
+                {
+                    return StatusCode(500, e.Message);
+                }
             }
         }
 
@@ -120,23 +173,105 @@ namespace Mini_GPT.Controllers
         }
 
 
-        [HttpGet("confirmEmail")]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
         {
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
+            try
             {
-                return NotFound();
+                await _signInManager.SignOutAsync();
+                return Ok("User has been logged out");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("sendResetPasswordEmail")]
+        [Authorize]
+        public async Task<IActionResult> SendResetPassword([FromBody] SendResetPasswordDto resetPassword)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
             }
 
-            var result = await _userManager.ConfirmEmailAsync(user, token);
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(resetPassword.Email!);
 
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                if (user == null)
+                {
+                    return BadRequest("Invalid Request!");
+                }
 
-            return Ok(result);
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+                var resetLink = Url.Action("ResetPassword", "Auth", new { userEmail = user.Email, token = token}, Request.Scheme);
+                
+                var emailBody = await GetEmailTemplate("forgotPassword");
+
+                emailBody = emailBody.Replace("{{resetLink}}", resetLink!);
+
+                await _emailService.SendEmailAsync(user.Email!, "Reset Your Password", emailBody);
+
+                return Ok("Reset password link has been sent to your email");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
-    
+
+        [HttpPost("resetPassword")]
+        [Authorize]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPassword)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(resetPassword.Email!);
+
+                if (user == null)
+                {
+                    return BadRequest("Invalid Request!");
+                }
+
+                if (resetPassword.NewPassword != resetPassword.ConfirmPassword)
+                {
+                    return BadRequest("Passwords do not match!");
+                }
+
+                var decodedToken = WebUtility.UrlDecode(resetPassword.Token);
+
+                var result = await _userManager.ResetPasswordAsync(user, decodedToken!, resetPassword.NewPassword!);
+
+                if (result.Succeeded)
+                {
+                    return Ok("Password has been reset successfully");
+                }
+                else
+                {
+                    var errors = result.Errors.Select(e => e.Description);
+                    return BadRequest(new { Errors = errors });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        internal async Task<string> GetEmailTemplate(string templateName)
+        {
+            var filePath = Path.Combine("Email Templates", $"{templateName}.html");
+            return await System.IO.File.ReadAllTextAsync(filePath);
+        }
+
     }
 }

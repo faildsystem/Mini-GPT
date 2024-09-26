@@ -1,4 +1,5 @@
 
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ namespace Mini_GPT
             {
                 options.User.RequireUniqueEmail = true;
                 options.SignIn.RequireConfirmedEmail = true;
-                
+
                 options.Password.RequireDigit = true;
                 options.Password.RequireLowercase = true;
                 options.Password.RequireUppercase = true;
@@ -79,9 +80,17 @@ namespace Mini_GPT
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddHangfire((sp, config) => {
+                var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection");
+                config.UseSqlServerStorage(connectionString);
+            });
+
+            builder.Services.AddHangfireServer();
+
             builder.Services.AddSwaggerGen(option =>
             {
-                option.SwaggerDoc("v1", new OpenApiInfo { Title = "Todo API", Version = "v1" });
+                option.SwaggerDoc("v1", new OpenApiInfo { Title = "Mini-GPT", Version = "v1" });
                 option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -105,7 +114,7 @@ namespace Mini_GPT
             new string[]{}
         }
     });
-            });
+            });        
 
             // Configure MongoDB settings
             builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
@@ -137,10 +146,12 @@ namespace Mini_GPT
             app.UseAuthentication();
             app.UseAuthorization();
 
+
             app.UseAuthorization();
 
-
             app.MapControllers();
+
+            app.UseHangfireDashboard();
 
             app.Run();
         }
